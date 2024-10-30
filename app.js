@@ -3,11 +3,15 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 const logger = require("morgan");
 
+const mongoose = require("./db");
+
 const app = express();
+
 const indexRouter = require("./routes/index");
 const userRouter = require("./routes/users");
 const boardRouter = require("./routes/board");
 const birdsRouter = require("./routes/birds");
+const commentRouter = require("./routes/comment.js");
 
 app.use(logger("dev"));
 app.use(express.json());
@@ -40,5 +44,15 @@ app.use("/", indexRouter);
 app.use("/users", userRouter);
 app.use("/board", boardRouter);
 app.use("/birds", birdsRouter);
+app.use("/comment", commentRouter);
+
+app.use(function (req, res, next) {
+  next(createError(404));
+});
+
+app.use(function (err, req, res, next) {
+  res.locals.message = err.message;
+  res.locals.error;
+});
 
 module.exports = app;

@@ -1,3 +1,4 @@
+const mongoose = require("../db");
 const ReviewSchema = new mongoose.Schema({
   writer: {
     type: String,
@@ -20,23 +21,11 @@ const ReviewSchema = new mongoose.Schema({
     default: "",
   },
 });
-const Review = mongoose.model("Review", ReviewSchema);
+
+const Review = mongoose.model("Reviews", ReviewSchema);
 
 Review.create({
-  writer: "전유정",
+  writer: "신윤수",
   movie: "67203fc63c39621e71db125d",
   title: "리뷰1",
 });
-
-Review.find({ writer: "전유정" }).then((review) => {
-  console.log(review);
-});
-Review.find({ writer: "전유정" })
-  .populate("movie")
-  .then((review) => {
-    console.log(review);
-  });
-
-Review.find({writer: "전유정"}).populate('movie').then(review => {
-    console.log(review)
-})
