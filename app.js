@@ -2,9 +2,11 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const path = require("path");
 const logger = require("morgan");
-const mongoose = require("./db");
+
+const USER_HISTORY_COOKIE = "user-history";
 
 const app = express();
+const mongoose = require("./db");
 
 const cors = require("cors");
 let corsOptions = {
@@ -21,6 +23,37 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use((req, res, next) => {
+  console.log("middleware 실행!");
+  next();
+});
+
+const session = require("express-session");
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "<my-scecret>",
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+      httpOnly: true,
+      secure: true,
+    },
+  })
+);
+
+app.use((req, res, next) => {
+  if (!req.session.userHistory) {
+    req.session.userHistory = [];
+  }
+  req.session.userHistory.push(req.path);
+
+  // console.log('session:', req.session);
+  // console.log("middleware실행!");
+  // console.log('path:', req.path);
+  console.log(req.session.userHistory);
+  next();
+});
+
 // 라우터 설정
 const indexRouter = require("./routes/index");
 const userRouter = require("./routes/users");
@@ -33,6 +66,7 @@ app.use("/users", userRouter);
 app.use("/board", boardRouter);
 app.use("/birds", birdsRouter);
 app.use("/comment", commentRouter);
+app.use("/user", userRouter);
 
 /* 예제 경로 */
 app.get("/hello-world", (req, res) => {
