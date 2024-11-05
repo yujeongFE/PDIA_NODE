@@ -1,50 +1,55 @@
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const path = require("path");
-const logger = require("morgan");
+var createError = require("http-errors");
+var express = require("express");
+var path = require("path");
+var cookieParser = require("cookie-parser");
+var logger = require("morgan");
+const session = require("express-session");
 
-const USER_HISTORY_COOKIE = "user-history";
+var indexRouter = require("./routes/index");
+var usersRouter = require("./routes/users");
+const boardRouter = require("./routes/board");
+const birdsRouter = require("./routes/birds");
+const commentRouter = require("./routes/comment");
 
-const app = express();
 const mongoose = require("./db");
-
 const cors = require("cors");
-let corsOptions = {
-  origin: "http://localhost:5173",
-  credentials: true,
-};
+// localhost:3000
 
-app.use(cors(corsOptions));
+var app = express();
 
-// 미들웨어 설정
+// view engine setup
+// app.set('views', path.join(__dirname, 'views'));
+// app.set('view engine', 'ejs');
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
 app.use(logger("dev"));
+// app.use(미들웨어 or 라우터)
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
 
-app.use((req, res, next) => {
-  console.log("middleware 실행!");
-  next();
-});
-
-const session = require("express-session");
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "<my-scecret>",
+    secret: process.env.SESSION_SECRET || "<my-secret>",
     resave: true,
     saveUninitialized: true,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: false, // https만 가능
     },
   })
 );
+
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use((req, res, next) => {
   if (!req.session.userHistory) {
     req.session.userHistory = [];
   }
+
   req.session.userHistory.push(req.path);
 
   // console.log('session:', req.session);
@@ -54,55 +59,51 @@ app.use((req, res, next) => {
   next();
 });
 
-// 라우터 설정
-const indexRouter = require("./routes/index");
-const userRouter = require("./routes/users");
-const boardRouter = require("./routes/board");
-const birdsRouter = require("./routes/birds");
-const commentRouter = require("./routes/comment.js");
-
-app.use("/", indexRouter);
-app.use("/users", userRouter);
-app.use("/board", boardRouter);
-app.use("/birds", birdsRouter);
-app.use("/comment", commentRouter);
-app.use("/user", userRouter);
-
-/* 예제 경로 */
 app.get("/hello-world", (req, res) => {
+  console.log(req.headers);
+  // console.dir(req);
   res.json({
-    title: "Hello World",
+    title: "HelloWorld",
     data: "blah blah",
   });
+  // res.send("HI My Name is younsoo")
 });
-
 app.post("/hello-world", (req, res) => {
   res.send("This is Post Request");
 });
-
 app.put("/hello-world", (req, res) => {
   res.send("This is Put Request");
 });
-
 app.delete("/hello-world", (req, res) => {
   res.send("This is Delete Request");
 });
 
-// 404 처리
-app.use((req, res, next) => {
-  const err = new Error("Not Found");
-  err.status = 404;
-  next(err);
+app.use("/", indexRouter); // http://localhost:3000/
+app.use("/users", usersRouter); // http://localhost:3000/users
+app.use("/board", boardRouter); // http://localhost:3000/board/~
+app.use("/birds", birdsRouter);
+app.use("/comment", commentRouter);
+
+// catch 404 and forward to error handler
+app.use(function (req, res, next) {
+  next(createError(404));
 });
 
-// 오류 처리 미들웨어
-app.use((err, req, res, next) => {
+// error handler
+app.use(function (err, req, res, next) {
+  // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
 
-  // 에러 상태와 메시지 전송
+  // render the error page
   res.status(err.status || 500);
-  res.json({ error: err.message });
+  // res.render('error');
+  res.json(res.locals);
+  // next()
 });
+
+// console.log(app._router);
+
+// console.log(mongoose.models)
 
 module.exports = app;
